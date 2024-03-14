@@ -1,0 +1,44 @@
+#!/usr/bin/bash
+
+# Check if at least one argument is passed
+if [ "$#" -lt 1 ]; then
+    echo "You must pass at least two variable <repo> <username>"
+    echo "Usage: $0 <repo> <username> [<git token>]"
+    exit 1
+fi
+
+WDIR=$(pwd)
+NEWDIR="$1"
+USER="${2}"
+TOKEN="${3}"
+
+if [ "$WDIR" = "/" ]; then
+    cd ~/
+    mkdir "$NEWDIR" || exit 1
+    cd "$NEWDIR" || exit 1
+else
+    mkdir "$NEWDIR" || exit 1
+    cd "$NEWDIR" || exit 1
+fi
+
+echo "# $NEWDIR" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin "https://$TOKEN@github.com/$USER/$NEWDIR.git"
+git push -u origin main
+if [ $? -ne 0 ]; then
+	echo 'Failed to add remote origin'
+	echo 'Deleting unused directory $NEWDIR'
+	if [ "$WDIR" = "/" ]; then
+		cd ~
+		rm -rf $NEWDIR
+	else
+		rm -rf ../$NEWDIR/
+	fi
+	echo 'Exiting'
+
+else
+	echo "cd \"$NEWDIR\" to access your repo"
+fi

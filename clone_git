@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+TOKEN="$2"
+repo="$1"
+filename=$( pwd )/$repo
+
+clone() {
+	echo '---------------------------------------------------'
+	echo 'Starting clone process'
+	git clone https://"$1"@github.com/I-yan-u/"$2".git;
+	echo 'Completed the cloning process'
+}
+
+enter_d() {
+	(cd "$filename")
+	echo "# $repo" > $filename/README.md
+	echo "cd to $filename to access repo"
+}
+
+clone "$TOKEN" "$repo";
+enter_d "$repo";
