@@ -14,7 +14,7 @@ clone() {
 enter_d() {
 	(cd "$filename")
 	echo "# $repo" > $filename/README.md
-	echo "cd to $filename to access repo"
+	echo "cd \"$filename\" to access repo"
 }
 
 clone "$TOKEN" "$repo";

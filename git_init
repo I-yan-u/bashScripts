@@ -29,8 +29,8 @@ git branch -M main
 git remote add origin "https://$TOKEN@github.com/$USER/$NEWDIR.git"
 git push -u origin main
 if [ $? -ne 0 ]; then
-	echo 'Failed to add remote origin'
-	echo 'Deleting unused directory $NEWDIR'
+	echo "Failed to add remote origin"
+	echo "Deleting unused directory $NEWDIR"
 	if [ "$WDIR" = "/" ]; then
 		cd ~
 		rm -rf $NEWDIR
