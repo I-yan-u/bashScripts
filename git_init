@@ -1,44 +1,64 @@
 #!/usr/bin/bash
 
-# Check if at least one argument is passed
-if [ "$#" -lt 1 ]; then
-    echo "You must pass at least two variable <repo> <username>"
-    echo "Usage: $0 <repo> <username> [<git token>]"
+# Check if at least two arguments are passed
+if [ "$#" -lt 2 ]; then
+    >&2 echo "You must pass at least two variables <repo> <username>"
+    >&2 echo "Usage: $0 <repo> <username> [<git token>]"
     exit 1
 fi
 
+# Initialize Git function
+git_init_repo() {
+  local NEWDIR="$1"
+  local USER="$2"
+  local TOKEN="${3:-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}"
+  local CWDIR="${4:-}"
+
+  echo "# $NEWDIR" >> README.md
+  git init
+  git add README.md
+  git commit -m "first commit"
+  git branch -M main
+  git remote add origin "https://$TOKEN@github.com/$USER/$NEWDIR.git"
+  git push origin main
+  if [ $? -ne 0 ]; then
+    >&2 echo "Failed to add remote origin"
+    >&2 echo "Deleting unused directory $NEWDIR"
+    rm -rf "$NEWDIR"
+    >&2 echo 'Exiting.....'
+    exit 1
+  else
+    if [ "$NEWDIR" = "$CWDIR" ]; then
+        git add $(pwd)
+        git commit -m "$NEWDIR second commit"
+        git push origin main
+        echo "$NEWDIR Initialized!"
+    else
+        echo "$NEWDIR Initialized!"
+        echo "cd \"$NEWDIR\" to access your repo"
+    fi
+  fi
+}
+
+# Variables and main
 WDIR=$(pwd)
+CWDIR=$(basename "$WDIR")
 NEWDIR="$1"
-USER="${2}"
-TOKEN="${3}"
+USER="$2"
+TOKEN="${3:-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}"
 
 if [ "$WDIR" = "/" ]; then
     cd ~/
     mkdir "$NEWDIR" || exit 1
     cd "$NEWDIR" || exit 1
+    git_init_repo "$NEWDIR" "$USER" "$TOKEN"
 else
-    mkdir "$NEWDIR" || exit 1
-    cd "$NEWDIR" || exit 1
+    if [ "$NEWDIR" = "$CWDIR" ]; then
+        git_init_repo "$NEWDIR" "$USER" "$TOKEN" "$CWDIR"
+    else
+        mkdir "$NEWDIR" || exit 1
+        cd "$NEWDIR" || exit 1
+        git_init_repo "$NEWDIR" "$USER" "$TOKEN"
+    fi
 fi
 
-echo "# $NEWDIR" >> README.md
-git init
-git add README.md
-git commit -m "first commit"
-git branch -M main
-git remote add origin "https://$TOKEN@github.com/$USER/$NEWDIR.git"
-git push -u origin main
-if [ $? -ne 0 ]; then
-	echo "Failed to add remote origin"
-	echo "Deleting unused directory $NEWDIR"
-	if [ "$WDIR" = "/" ]; then
-		cd ~
-		rm -rf $NEWDIR
-	else
-		rm -rf ../$NEWDIR/
-	fi
-	echo 'Exiting'
-
-else
-	echo "cd \"$NEWDIR\" to access your repo"
-fi

@@ -1,0 +1,120 @@
+#!/usr/bin/bash
+
+set -e
+set -u
+
+PROJECT_NAME="${!#}"
+
+if [ -z "$PROJECT_NAME" ]; then
+    echo "Usage: $0 <project_name>"
+    exit 1
+fi
+
+create_readme() {
+    printf "# %s\n" "$1" > README.md || { echo "Failed to create README.md"; exit 1; }
+}
+
+create_venv() {
+    if [ -d "venv" ]; then
+        echo "Virtual environment already exists. Skipping creation."
+    else
+        python3 -m venv venv || { echo "Failed to create virtual environment"; exit 1; }
+    fi
+}
+
+install_basic_deps() {
+    echo "Activating virtual environment..."
+
+    # Detect OS and activate the virtual environment
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+        # Windows
+        source "./venv/Scripts/activate" || { echo "Failed to activate venv on Windows"; exit 1; }
+    else
+        # Unix/Linux/MacOS
+        source "./venv/bin/activate" || { echo "Failed to activate venv on Unix"; exit 1; }
+    fi
+
+    echo "Verifying pip environment..."
+
+    venv_dir=$(realpath "$(pwd)/venv" | sed 's/\\/\//g')
+    python_path=$(which python)
+
+    echo "Python Path: $python_path"
+    echo "Virtual Environment Directory: $venv_dir"
+
+    # Check if Python binary is inside the virtual environment
+    if [[ "$python_path" != "$venv_dir"* ]]; then
+        echo "Python is not using the virtual environment. Aborting."
+        deactivate
+        exit 1
+    fi
+
+    echo "Installing dependencies..."
+    pip install alembic fastapi pydantic pydantic-settings uvicorn python-jose SQLAlchemy || {
+        echo "Failed to install dependencies"; 
+        deactivate; 
+        exit 1;
+    }
+
+    setup_alembic "$PROJECT_NAME"
+
+    echo "Freezing dependencies to requirements.txt..."
+    pip freeze > requirements.txt || { echo "Failed to create requirements.txt"; deactivate; exit 1; }
+
+    echo "Deactivating virtual environment..."
+    deactivate
+}
+
+create_gitignore() {
+    printf "# Byte-compiled / optimized / DLL files\n__pycache__/\n*.py[cod]\n*\$py.class\n\n# Installer logs\npip-log.txt\npip-delete-this-directory.txt\n\n# Unit test / coverage reports\nhtmlcov/\n.tox/\n.nox/\n.coverage\n.coverage.*\n.cache\nnosetests.xml\ncoverage.xml\n*.cover\n*.py.cover\n.hypothesis/\n.pytest_cache/\ncover/\n\n# IPython\nprofile_default/\nipython_config.py\n\n# pyenv\n.python-version\n\n# celery beat schedule file\ncelerybeat-schedule\ncelerybeat.pid\n\n# SageMath parsed files\n*.sage.py\n\n# Environments\n.env\n.venv\nenv/\nvenv/\nENV/\nenv.bak/\nvenv.bak/\n\n# Local env files\n.env.local\n.env.*.local\n.env\n.env.*.local\n\n# Editor directories and files\n.idea\n.vscode\n*.suo\n*.ntvs*\n*.njsproj\n*.sln\n*.sw?\n\n# mypy\n.mypy_cache/\n.dmypy.json\ndmypy.json\n\n# Pyre type checker\n.pyre/\n\n# pytype static type analyzer\n.pytype/\n\n# Cython debug symbols\ncython_debug/\n" >.gitignore
+}
+
+create_dotenv() {
+    printf "DEBUG=True\nSECRET_KEY=YOUR_SECRET_KEY\nDATABASE_URL=sqlite:///./app.db\n\n# Optional\n# DATABASE_URL=postgresql://user:password@localhost/dbname\n" >.env
+}
+
+setup_alembic() {
+    db_manager="$1""_migration"
+    echo "Setting up Alembic..."
+    alembic init $db_manager || { echo "Failed to setup Alembic"; exit 1; }
+}
+
+creat_app_gateway() {
+    echo "#!/usr/bin/env python3
+from server import create_app
+import uvicorn
+
+app = create_app()
+
+
+if __name__ == '__main__':
+    config = uvicorn.Config("app", port=5000, log_level='info')
+    server = uvicorn.Server(config)
+    server.run()
+    " >app.py
+}
+
+main() {
+    echo "Creating README.md..."
+    create_readme "$PROJECT_NAME"
+
+    echo "Setting up virtual environment..."
+    create_venv
+
+    echo "Installing basic dependencies..."
+    install_basic_deps
+
+    echo "Creating .gitignore..."
+    create_gitignore
+
+    echo "Creating .env..."
+    create_dotenv
+
+    echo "Creating app gateway..."
+    creat_app_gateway
+
+    echo "Environment setup complete for $PROJECT_NAME."
+}
+
+main
+

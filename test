@@ -1,0 +1,19 @@
+#!/usr/bin/bash
+
+if [ $# -lt 1 ]; then
+	echo "Invalid Usage"
+	echo "Usage: test <repo>"
+	exit 1
+fi
+
+REPO=$1
+
+F_DIR=$(pwd)
+C_DIR=$(basename "$F_DIR")
+
+if [ $REPO = $C_DIR ]; then
+	echo "Your current directory is the repo name"
+else
+	echo "Directory name: $C_DIR"
+	echo "Repository name: $REPO"
+fi
