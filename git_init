@@ -11,7 +11,7 @@ fi
 git_init_repo() {
   local NEWDIR="$1"
   local USER="$2"
-  local TOKEN="${3:-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}"
+  local TOKEN="${3:-}"
   local CWDIR="${4:-}"
 
   echo "# $NEWDIR" >> README.md
@@ -45,7 +45,7 @@ WDIR=$(pwd)
 CWDIR=$(basename "$WDIR")
 NEWDIR="$1"
 USER="$2"
-TOKEN="${3:-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}"
+TOKEN="${3:-}"
 
 if [ "$WDIR" = "/" ]; then
     cd ~/
