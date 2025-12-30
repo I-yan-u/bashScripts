@@ -1,21 +1,69 @@
 #!/usr/bin/env bash
 
-TOKEN="$2"
-repo="$1"
-filename=$( pwd )/$repo
+default_case=true
+user="gihub_user"
+TOKEN="token"
+repo="${!#}"
+#shift # Shift arguments so that getopts can process the remaining options
+
+filename=$(pwd)/"$repo"
 
 clone() {
-	echo '---------------------------------------------------'
-	echo 'Starting clone process'
-	git clone https://"$1"@github.com/I-yan-u/"$2".git;
-	echo 'Completed the cloning process'
+    echo '---------------------------------------------------'
+    echo "Starting clone process for repository: $2"
+    if git clone https://"$1"@github.com/"$3"/"$2".git; then
+        echo "Cloning process completed successfully."
+    else
+        echo "Error: Failed to clone the repository."
+    fi
 }
 
 enter_d() {
-	(cd "$filename")
-	echo "# $repo" > $filename/README.md
-	echo "cd \"$filename\" to access repo"
+    if cd "$filename"; then
+        echo "# $repo" > README.md
+        echo "Repository cloned successfully. Use: cd \"$filename\" to access the repo."
+    else
+        echo "Error: Could not enter directory $filename."
+    fi
 }
+while getopts "e:i:h" opt; do
+    default_case=false
+    case $opt in
+        e)
+            user="$OPTARG"
+            echo "Using external account: $OPTARG"
+            clone $TOKEN $repo $OPTARG
+            enter_d
+            ;;
+        i)
+            TOKEN="$OPTARG"
+            clone $OPTARG "$repo" "$user"
+            enter_d
+            ;;
+        h)
+            cat <<EOF
+Usage: clone_git [-e git-account] [-i TOKEN] repo
 
-clone "$TOKEN" "$repo";
-enter_d "$repo";
+Options:
+  -e  Use an external git account instead of the default (default: I-yan-u).
+  -i  Provide a custom git access token.
+  -h  Display this help message.
+
+Examples:
+  ./clone_git -e my-account my-repo
+  ./clone_git -i my-token my-repo
+EOF
+            exit 0
+            ;;
+        *)
+            echo "Invalid option. Use -h for help."
+            exit 1
+            ;;
+    esac
+done
+
+if $default_case; then
+    echo "Using default settings to clone the repository..."
+    clone "$TOKEN" "$repo" "$user"
+    enter_d
+fi
